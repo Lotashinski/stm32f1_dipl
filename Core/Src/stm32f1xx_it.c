@@ -71,7 +71,6 @@ extern uint8_t requestCode[];
 extern Bmp180 bmp[6];
 extern I2C_HandleTypeDef hi2c1;
 uint8_t package[8];
-char alphabet[] = "ABCDEFG";
 
 void transmit(uint64_t data) {
 	for (uint8_t i = 0; i < 8; ++i) {
@@ -81,32 +80,44 @@ void transmit(uint64_t data) {
 	HAL_UART_Transmit(&huart1, (uint8_t*) package, 8, 0xFFFF);
 }
 
+void transmitter(uint8_t i) {
+	TCA_Set(&hi2c1, (TcaAddress) i);
+	BMP_180_Update(&bmp[i]);
+	uint32_t _t = (bmp[i].isInit << 31) | bmp[i].Temperature;
+	uint64_t data = (((uint64_t) _t << 32)) | bmp[i].Pressure;
+	transmit(data);
+}
+
 void case0() {
-	transmit(500);
+	transmitter(0);
 }
 
 void case1() {
-	transmit(91000);
+	transmitter(1);
 }
 
 void case2() {
-	transmit(92000);
+	transmitter(2);
 }
 
 void case3() {
-	transmit(93000);
+	transmitter(3);
 }
 
 void case4() {
-	transmit(94000);
+	transmitter(4);
 }
 
 void case5() {
-	transmit(95000);
+	transmitter(5);
 }
 
 void case6() {
-	transmit(96000);
+	transmitter(6);
+}
+
+void case80() {
+	transmit(0);
 }
 
 void caseDefault() {
@@ -247,27 +258,34 @@ void TIM2_IRQHandler(void) {
 	HAL_TIM_IRQHandler(&htim2);
 	/* USER CODE BEGIN TIM2_IRQn 1 */
 
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-	ssd1306_Fill(Black);
+	ssd1306_Fill(White);
 	char info[6][17] = { { 'A', '-', 0 }, { 'B', '-', 0 }, { 'C', '-', 0 }, {
 			'D', '-', 0 }, { 'E', '-', 0 }, { 'F', '-', 0 } };
 
 	for (uint8_t i = 0; i < 6; ++i) {
 		TCA_Set(&hi2c1, (TcaAddress) i);
-		BMP_180_Update(&bmp[i], &hi2c1);
+		BMP_180_Update(&bmp[i]);
 		char data_p[7] = { 0 };
-		if (bmp[i].Pressure != 0) {
+		if (bmp[i].isInit == 1) {
 			itoa(bmp[i].Pressure, data_p, 10);
+			if (bmp[i].Pressure < 100000) {
+				strcat(info[i], " ");
+			}
 			strcat(info[i], data_p);
-
 			itoa(bmp[i].Temperature, data_p, 10);
 			strcat(info[i], " ");
+			if (bmp[i].Temperature < 100) {
+				strcat(info[i], " ");
+			}
+			if (bmp[i].Temperature < 10) {
+				strcat(info[i], " ");
+			}
 			strcat(info[i], data_p);
 		} else {
 			strcat(info[i], "invalid");
 		}
 		ssd1306_SetCursor(4, i * 10);
-		ssd1306_WriteString(info[i], Font_7x9, White);
+		ssd1306_WriteString(info[i], Font_7x9, Black);
 	}
 
 	ssd1306_UpdateScreen();
@@ -279,7 +297,7 @@ void TIM2_IRQHandler(void) {
  */
 void USART1_IRQHandler(void) {
 	/* USER CODE BEGIN USART1_IRQn 0 */
-	HAL_GPIO_WritePin(GPIOC, 13, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, 13, SET);
 	/* USER CODE END USART1_IRQn 0 */
 	HAL_UART_IRQHandler(&huart1);
 	/* USER CODE BEGIN USART1_IRQn 1 */
@@ -306,10 +324,13 @@ void USART1_IRQHandler(void) {
 	case 6:
 		case6();
 		break;
+	case 80:
+		case80();
+		break;
 	default:
 		caseDefault();
 	}
-
+	HAL_GPIO_WritePin(GPIOC, 13, RESET);
 	HAL_UART_Receive_IT(&huart1, (uint8_t*) requestCode, 1);
 	/* USER CODE END USART1_IRQn 1 */
 }

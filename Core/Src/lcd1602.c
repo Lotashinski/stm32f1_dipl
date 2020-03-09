@@ -19,8 +19,7 @@
 HAL_StatusTypeDef _lcd_send_internal_i2c(I2C_HandleTypeDef *i2c, uint8_t data,
 		uint8_t flags) {
 
-	while (HAL_I2C_IsDeviceReady(i2c, LCD_I2C_ADDRESS, 1, I2C_TIMEOUT)
-			!= HAL_OK)
+	while (HAL_I2C_IsDeviceReady(i2c, LCD_I2C_ADDRESS, 1, I2C_TIMEOUT) != HAL_OK)
 		;
 
 	uint8_t up = data & 0xF0;
@@ -32,8 +31,9 @@ HAL_StatusTypeDef _lcd_send_internal_i2c(I2C_HandleTypeDef *i2c, uint8_t data,
 	data_arr[2] = lo | flags | BACKLIGHT | PIN_EN;
 	data_arr[3] = lo | flags | BACKLIGHT;
 
-	HAL_StatusTypeDef res = HAL_I2C_Master_Transmit(i2c, LCD_I2C_ADDRESS, data_arr, 4,
-	I2C_TIMEOUT);
+	HAL_StatusTypeDef res = HAL_I2C_Master_Transmit(i2c, LCD_I2C_ADDRESS,
+			data_arr, 4,
+			I2C_TIMEOUT);
 	return res;
 }
 

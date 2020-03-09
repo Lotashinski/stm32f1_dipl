@@ -126,12 +126,15 @@ int main(void) {
 	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
 
+	HAL_Delay(50);
+
 	ssd1306_Init(hi2c1, 0x78);
 	for (uint8_t i = 0; i < 6; ++i) {
 		TCA_Set(&hi2c1, (TcaAddress) i);
 		BMP_180_Init(&bmp[i], &hi2c1);
 	}
 
+	HAL_GPIO_WritePin(GPIOC, 13, SET);
 	HAL_UART_Receive_IT(&huart1, (uint8_t*) requestCode, 1);
 	HAL_TIM_Base_Start_IT(&htim2);
 	/* USER CODE END 2 */
@@ -294,12 +297,23 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
 	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 
 	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+
+	/*Configure GPIO pin : PC13 */
+	GPIO_InitStruct.Pin = GPIO_PIN_13;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 	/*Configure GPIO pin : PB14 */
 	GPIO_InitStruct.Pin = GPIO_PIN_14;
